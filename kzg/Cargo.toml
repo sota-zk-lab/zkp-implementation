@@ -7,8 +7,7 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.3"
-oblast = { path = "oblast" }
-num-bigint = "0.3.1"
+num-bigint = "0.4.4"
 
 [dev-dependencies]
 hex = "0.4.2"
