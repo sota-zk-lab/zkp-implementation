@@ -3,10 +3,11 @@ use ark_ff::{One, Zero};
 
 #[allow(dead_code)]
 #[derive(PartialEq)]
-pub enum Position{
+pub enum Position {
     Dummy,
-    Pos(usize, usize)
+    Pos(usize, usize),
 }
+
 #[allow(dead_code)]
 pub struct Gate {
     a_wire: Position,
@@ -22,7 +23,6 @@ pub struct Gate {
 
 #[allow(dead_code)]
 impl Gate {
-
     pub fn new() -> Gate {
         Self {
             a_wire: Position::Dummy,
@@ -129,6 +129,9 @@ impl Gate {
         }
     }
 
+    pub(crate) fn is_dummy_gate(&self) -> bool {
+        self.a_wire == Position::Dummy
+    }
 
     pub(crate) fn get_a_wire(&self) -> &Position {
         &self.a_wire
