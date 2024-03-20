@@ -94,11 +94,11 @@ impl CopyConstraints {
         &self.s_sigma_3
     }
 
-    pub fn get_k1(&self) -> &Fr {
+    pub fn k1(&self) -> &Fr {
         &self.k1
     }
 
-    pub fn get_k2(&self) -> &Fr {
+    pub fn k2(&self) -> &Fr {
         &self.k2
     }
 }

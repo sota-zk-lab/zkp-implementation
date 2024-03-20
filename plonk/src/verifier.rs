@@ -44,8 +44,8 @@ impl CompiledCircuit {
         + q_o_c.mul(proof.bar_c) + q_c_c;
 
         let d_line2 = proof.z_commit.mul((proof.bar_a + beta * evaluation_challenge + gamma)
-            * (proof.bar_b + beta * self.copy_constraint.get_k1() * evaluation_challenge + gamma)
-            * (proof.bar_c + beta * self.copy_constraint.get_k2() * evaluation_challenge + gamma)
+            * (proof.bar_b + beta * self.copy_constraint.k1() * evaluation_challenge + gamma)
+            * (proof.bar_c + beta * self.copy_constraint.k2() * evaluation_challenge + gamma)
             * alpha + l_1_e * alpha * alpha + u);
 
         let d_line3 = ssigma_3_c.mul((proof.bar_a + beta * proof.bar_ssigma_1 + gamma)

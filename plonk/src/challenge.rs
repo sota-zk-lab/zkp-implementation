@@ -11,7 +11,6 @@ pub struct ChallengeParse {
     data: Vec<u8>
 }
 
-
 impl ChallengeParse {
     pub fn new() -> Self {
         Self {

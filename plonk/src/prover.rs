@@ -75,11 +75,11 @@ impl CompiledCircuit {
         let b8 = Fr::rand(&mut rng);
         let b9 = Fr::rand(&mut rng);
 
-        let w = self.domain.element(1);
         let pre4 = DensePolynomial::from_coefficients_vec(vec![b9, b8, b7]);
         let pre4 = pre4.mul_by_vanishing_poly(self.domain);
 
-        let pre4w = DensePolynomial::from_coefficients_vec(vec![b9, b8 * w, b7 * w * w]);
+        let w = self.domain.element(1);
+        let pre4w = DensePolynomial::from_coefficients_vec(vec![b9, b8 * w, b7 * self.domain.element(2)]);
         let pre4w = pre4w.mul_by_vanishing_poly(self.domain);
 
         let (acc_x, acc_wx) = self.compute_acc(&beta, &gamma);
@@ -205,30 +205,25 @@ impl CompiledCircuit {
 
 
     fn compute_acc(&self, beta: &Fr, gamma: &Fr) -> (Polynomial, Polynomial) {
-        let len = self.size.clone();
-        let mut acc_e = vec![];
-        acc_e.push(Fr::from(1));
+        let mut acc_e = vec![Fr::from(1)];
         let mut pre_acc_e = Fr::from(1);
         let roots = self.domain.elements().collect::<Vec<_>>();
-        let k1 = self.copy_constraint.get_k1();
-        let k2 = self.copy_constraint.get_k2();
+        let k1 = self.copy_constraint.k1();
+        let k2 = self.copy_constraint.k2();
 
-        for i in 1..len {
-            let w_is1 = roots.get(i - 1).unwrap();
+        for i in 1..self.size {
+            let w_sub1 = roots.get(i - 1).unwrap();
 
-            let numerator = (self.gate_constraint.f_ax().evaluate(w_is1) + *beta * w_is1 + *gamma)
-                * (self.gate_constraint.f_bx().evaluate(w_is1) + *beta * k1 * w_is1 + *gamma)
-                * (self.gate_constraint.f_cx().evaluate(w_is1) + *beta * k2 * w_is1 + *gamma);
+            let numerator = (self.gate_constraint.f_ax().evaluate(w_sub1) + *beta * w_sub1 + *gamma)
+                * (self.gate_constraint.f_bx().evaluate(w_sub1) + *beta * k1 * w_sub1 + *gamma)
+                * (self.gate_constraint.f_cx().evaluate(w_sub1) + *beta * k2 * w_sub1 + *gamma);
 
             let denominator =
-                (self.gate_constraint.f_ax().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_1().evaluate(w_is1) + *gamma)
-                    * (self.gate_constraint.f_bx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_2().evaluate(w_is1) + *gamma)
-                    * (self.gate_constraint.f_cx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_3().evaluate(w_is1) + *gamma);
+                (self.gate_constraint.f_ax().evaluate(w_sub1) + *beta * self.copy_constraint.get_ssigma_1().evaluate(w_sub1) + *gamma)
+                    * (self.gate_constraint.f_bx().evaluate(w_sub1) + *beta * self.copy_constraint.get_ssigma_2().evaluate(w_sub1) + *gamma)
+                    * (self.gate_constraint.f_cx().evaluate(w_sub1) + *beta * self.copy_constraint.get_ssigma_3().evaluate(w_sub1) + *gamma);
 
-
-            let tmp = numerator / denominator;
-            pre_acc_e = pre_acc_e * tmp;
-
+            pre_acc_e = pre_acc_e * numerator / denominator;
             acc_e.push(pre_acc_e);
         }
 
@@ -236,20 +231,19 @@ impl CompiledCircuit {
         let mut acc_e_shifted = acc_e.clone();
         acc_e_shifted.rotate_left(1);
 
-
         let acc = Evaluations::from_vec_and_domain(acc_e, self.domain).interpolate();
         let acc_w = Evaluations::from_vec_and_domain(acc_e_shifted, self.domain).interpolate();
         (acc, acc_w)
     }
 
     fn compute_quotient_polynomial(&self, beta: &Fr, gamma: &Fr, alpha: &Fr, ax: &Polynomial, bx: &Polynomial, cx: &Polynomial, z_x: &Polynomial, z_wx: &Polynomial) -> Polynomial {
-        let k1 = self.copy_constraint.get_k1();
-        let k2 = self.copy_constraint.get_k2();
+        let k1 = self.copy_constraint.k1();
+        let k2 = self.copy_constraint.k2();
 
-        let line1 = self.gate_constraint.q_mx().naive_mul(ax).naive_mul(bx)
-            + self.gate_constraint.q_lx().naive_mul(ax)
-            + self.gate_constraint.q_rx().naive_mul(bx)
-            + self.gate_constraint.q_ox().naive_mul(cx)
+        let line1 = self.gate_constraint.q_mx().mul(ax).mul(bx)
+            + self.gate_constraint.q_lx().mul(ax)
+            + self.gate_constraint.q_rx().mul(bx)
+            + self.gate_constraint.q_ox().mul(cx)
             + self.gate_constraint.pi_x().clone()
             + self.gate_constraint.q_cx().clone();
 
@@ -258,16 +252,16 @@ impl CompiledCircuit {
         let (line1, _) = line1.divide_by_vanishing_poly(self.domain).unwrap();
 
         let line2 = (ax.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta]))
-            .naive_mul(&(bx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k1])))
-            .naive_mul(&(cx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k2])))
+            .mul(&(bx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k1])))
+            .mul(&(cx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k2])))
             .mul(*alpha)
-            .naive_mul(z_x);
+            .mul(z_x);
 
         let line3 = (ax.clone() + self.copy_constraint.get_ssigma_1().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma]))
-            .naive_mul(&(bx.clone() + self.copy_constraint.get_ssigma_2().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
-            .naive_mul(&(cx.clone() + self.copy_constraint.get_ssigma_3().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
+            .mul(&(bx.clone() + self.copy_constraint.get_ssigma_2().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
+            .mul(&(cx.clone() + self.copy_constraint.get_ssigma_3().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
             .mul(*alpha)
-            .naive_mul(z_wx);
+            .mul(z_wx);
 
         // check the evaluation of line 2 and 3
         let tmp = self.domain.element(2);
@@ -289,7 +283,7 @@ impl CompiledCircuit {
             let l1 = self.l1_poly();
             let mut zx2 = z_x.clone();
             zx2.coeffs[0] -= Fr::from(1);
-            zx2.naive_mul(&l1).mul(alpha.square())
+            zx2.mul(&l1).mul(alpha.square())
         };
 
         // check line 4
@@ -327,8 +321,8 @@ impl CompiledCircuit {
             + self.gate_constraint.q_cx().clone();
         line1.coeffs[0] += pi_e;
 
-        let line2 = (*bar_a + *beta * eval_challenge + gamma) * (*bar_b + *beta * self.copy_constraint.get_k1() * eval_challenge + gamma)
-            * (*bar_c + *beta * self.copy_constraint.get_k2() * eval_challenge + gamma) * alpha;
+        let line2 = (*bar_a + *beta * eval_challenge + gamma) * (*bar_b + *beta * self.copy_constraint.k1() * eval_challenge + gamma)
+            * (*bar_c + *beta * self.copy_constraint.k2() * eval_challenge + gamma) * alpha;
         let line2 = z_x.mul(line2);
 
         let line3 = (*bar_a + *beta * bar_ssigma_1 + gamma) * (*bar_b + *beta * bar_ssigma_2 + gamma) * bar_z_w * alpha;
@@ -340,16 +334,16 @@ impl CompiledCircuit {
         // check:
         {
             let line22 = (ax.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta]))
-                .naive_mul(&(bx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * self.copy_constraint.get_k1()])))
-                .naive_mul(&(cx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * self.copy_constraint.get_k2()])))
+                .mul(&(bx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * self.copy_constraint.k1()])))
+                .mul(&(cx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * self.copy_constraint.k2()])))
                 .mul(*alpha)
-                .naive_mul(z_x);
+                .mul(z_x);
 
             let line32 = (ax.clone() + self.copy_constraint.get_ssigma_1().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma]))
-                .naive_mul(&(bx.clone() + self.copy_constraint.get_ssigma_2().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
-                .naive_mul(&(cx.clone() + self.copy_constraint.get_ssigma_3().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
+                .mul(&(bx.clone() + self.copy_constraint.get_ssigma_2().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
+                .mul(&(cx.clone() + self.copy_constraint.get_ssigma_3().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
                 .mul(*alpha)
-                .naive_mul(z_wx);
+                .mul(z_wx);
 
             let diff2 = line32.evaluate(eval_challenge) - line22.evaluate(eval_challenge);
             let cur = line3.evaluate(eval_challenge) - line2.evaluate(eval_challenge);
