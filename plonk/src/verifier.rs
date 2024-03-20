@@ -28,7 +28,7 @@ impl CompiledCircuit {
 
         let z_h_e = self.domain.vanishing_polynomial().evaluate(&evaluation_challenge);
         let l_1_e = self.l1_poly().evaluate(&evaluation_challenge);
-        let p_i_e = self.gate_constraint.get_pi_x().evaluate(&evaluation_challenge);
+        let p_i_e = self.gate_constraint.pi_x().evaluate(&evaluation_challenge);
 
 
         #[cfg(test)]
@@ -98,11 +98,11 @@ impl CompiledCircuit {
                                          KzgCommitment, KzgCommitment, KzgCommitment, KzgCommitment) {
 
         let scheme = KzgScheme::new(&self.srs);
-        let q_m_c = scheme.commit(self.gate_constraint.get_q_mx());
-        let q_l_c = scheme.commit(self.gate_constraint.get_q_lx());
-        let q_r_c = scheme.commit(self.gate_constraint.get_q_rx());
-        let q_o_c = scheme.commit(self.gate_constraint.get_q_ox());
-        let q_c_c = scheme.commit(self.gate_constraint.get_q_cx());
+        let q_m_c = scheme.commit(self.gate_constraint.q_mx());
+        let q_l_c = scheme.commit(self.gate_constraint.q_lx());
+        let q_r_c = scheme.commit(self.gate_constraint.q_rx());
+        let q_o_c = scheme.commit(self.gate_constraint.q_ox());
+        let q_c_c = scheme.commit(self.gate_constraint.q_cx());
         let ssigma1_c = scheme.commit(self.copy_constraint.get_ssigma_1());
         let ssigma2_c = scheme.commit(self.copy_constraint.get_ssigma_2());
         let ssigma3_c = scheme.commit(self.copy_constraint.get_ssigma_3());

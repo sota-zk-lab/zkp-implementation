@@ -1,14 +1,12 @@
 use ark_bls12_381::Fr;
 use ark_ff::{One, Zero};
 
-#[allow(dead_code)]
 #[derive(PartialEq)]
 pub enum Position {
     Dummy,
     Pos(usize, usize),
 }
 
-#[allow(dead_code)]
 pub struct Gate {
     a_wire: Position,
     b_wire: Position,
@@ -21,21 +19,7 @@ pub struct Gate {
     pub(crate) pi: Fr,
 }
 
-#[allow(dead_code)]
 impl Gate {
-    pub fn new() -> Gate {
-        Self {
-            a_wire: Position::Dummy,
-            b_wire: Position::Dummy,
-            c_wire: Position::Dummy,
-            q_l: Fr::from(0),
-            q_r: Fr::from(0),
-            q_o: Fr::from(0),
-            q_m: Fr::from(0),
-            q_c: Fr::from(0),
-            pi: Fr::from(0),
-        }
-    }
     fn unwrap_option_value(x: Option<Fr>) -> Fr {
         let negative_one = -Fr::one();
 

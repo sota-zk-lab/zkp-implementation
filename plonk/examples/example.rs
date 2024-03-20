@@ -18,7 +18,7 @@ fn main() {
     let _ = circuit.add_constant_gate((0, 6, Fr::from(3)), (1, 6, Fr::from(0)), (1, 2, Fr::from(3)), Fr::from(0));
 
     // compile the circuit
-    let compile_circuit = circuit.compile_circuit();
+    let compile_circuit = circuit.compile_circuit().unwrap();
 
     // generate proof
     let proof = compile_circuit.prove();

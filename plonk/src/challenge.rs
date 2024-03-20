@@ -23,7 +23,6 @@ impl ChallengeParse {
         &self.data
     }
 
-
     pub fn digest(&mut self, kzg_commitment: &KzgCommitment) {
         kzg_commitment
             .inner()

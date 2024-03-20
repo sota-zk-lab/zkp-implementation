@@ -53,19 +53,16 @@ impl CompiledCircuit {
         let pre2 = DensePolynomial::from_coefficients_vec(vec![b4, b3]);
         let pre3 = DensePolynomial::from_coefficients_vec(vec![b6, b5]);
 
-
         let ax = pre1.mul_by_vanishing_poly(self.domain);
-        let ax = self.gate_constraint.get_f_ax().clone().add(ax);
+        let ax = self.gate_constraint.f_ax().clone().add(ax);
 
         let bx = pre2.mul_by_vanishing_poly(self.domain);
-        let bx = self.gate_constraint.get_f_bx().clone().add(bx);
+        let bx = self.gate_constraint.f_bx().clone().add(bx);
 
         let cx = pre3.mul_by_vanishing_poly(self.domain);
-        let cx = self.gate_constraint.get_f_cx().clone().add(cx);
-
+        let cx = self.gate_constraint.f_cx().clone().add(cx);
 
         let commitments = Self::commit_round1(&ax, &bx, &cx, &scheme);
-
 
         // round2
         #[cfg(test)]
@@ -125,7 +122,7 @@ impl CompiledCircuit {
         let bar_ssigma_1 = self.copy_constraint.get_ssigma_1().evaluate(&evaluation_challenge);
         let bar_ssigma_2 = self.copy_constraint.get_ssigma_2().evaluate(&evaluation_challenge);
         let bar_z_w = z_x.evaluate(&(evaluation_challenge * w));
-        let pi_e = self.gate_constraint.get_pi_x().evaluate(&evaluation_challenge);
+        let pi_e = self.gate_constraint.pi_x().evaluate(&evaluation_challenge);
         let tx_compact = slice_poly.compact(&evaluation_challenge);
 
         // round 5
@@ -219,14 +216,14 @@ impl CompiledCircuit {
         for i in 1..len {
             let w_is1 = roots.get(i - 1).unwrap();
 
-            let numerator = (self.gate_constraint.get_f_ax().evaluate(w_is1) + *beta * w_is1 + *gamma)
-                * (self.gate_constraint.get_f_bx().evaluate(w_is1) + *beta * k1 * w_is1 + *gamma)
-                * (self.gate_constraint.get_f_cx().evaluate(w_is1) + *beta * k2 * w_is1 + *gamma);
+            let numerator = (self.gate_constraint.f_ax().evaluate(w_is1) + *beta * w_is1 + *gamma)
+                * (self.gate_constraint.f_bx().evaluate(w_is1) + *beta * k1 * w_is1 + *gamma)
+                * (self.gate_constraint.f_cx().evaluate(w_is1) + *beta * k2 * w_is1 + *gamma);
 
             let denominator =
-                (self.gate_constraint.get_f_ax().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_1().evaluate(w_is1) + *gamma)
-                    * (self.gate_constraint.get_f_bx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_2().evaluate(w_is1) + *gamma)
-                    * (self.gate_constraint.get_f_cx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_3().evaluate(w_is1) + *gamma);
+                (self.gate_constraint.f_ax().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_1().evaluate(w_is1) + *gamma)
+                    * (self.gate_constraint.f_bx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_2().evaluate(w_is1) + *gamma)
+                    * (self.gate_constraint.f_cx().evaluate(w_is1) + *beta * self.copy_constraint.get_ssigma_3().evaluate(w_is1) + *gamma);
 
 
             let tmp = numerator / denominator;
@@ -249,12 +246,12 @@ impl CompiledCircuit {
         let k1 = self.copy_constraint.get_k1();
         let k2 = self.copy_constraint.get_k2();
 
-        let line1 = self.gate_constraint.get_q_mx().naive_mul(ax).naive_mul(bx)
-            + self.gate_constraint.get_q_lx().naive_mul(ax)
-            + self.gate_constraint.get_q_rx().naive_mul(bx)
-            + self.gate_constraint.get_q_ox().naive_mul(cx)
-            + self.gate_constraint.get_pi_x().clone()
-            + self.gate_constraint.get_q_cx().clone();
+        let line1 = self.gate_constraint.q_mx().naive_mul(ax).naive_mul(bx)
+            + self.gate_constraint.q_lx().naive_mul(ax)
+            + self.gate_constraint.q_rx().naive_mul(bx)
+            + self.gate_constraint.q_ox().naive_mul(cx)
+            + self.gate_constraint.pi_x().clone()
+            + self.gate_constraint.q_cx().clone();
 
         // check line 1
         self.vanishes(&line1, "Wrong: line1 round 3 of generating proof");
@@ -325,9 +322,9 @@ impl CompiledCircuit {
                                         bar_ssigma_2: &Fr, bar_z_w: &Fr, pi_e: &Fr, tx_compact: &Polynomial,
                                         z_x: &Polynomial, ax: &Polynomial, bx: &Polynomial, cx: &Polynomial, z_wx: &Polynomial) -> Polynomial
     {
-        let mut line1 = self.gate_constraint.get_q_mx().mul(*bar_a * *bar_b) + self.gate_constraint.get_q_lx().mul(*bar_a)
-            + self.gate_constraint.get_q_rx().mul(*bar_b) + self.gate_constraint.get_q_ox().mul(*bar_c)
-            + self.gate_constraint.get_q_cx().clone();
+        let mut line1 = self.gate_constraint.q_mx().mul(*bar_a * *bar_b) + self.gate_constraint.q_lx().mul(*bar_a)
+            + self.gate_constraint.q_rx().mul(*bar_b) + self.gate_constraint.q_ox().mul(*bar_c)
+            + self.gate_constraint.q_cx().clone();
         line1.coeffs[0] += pi_e;
 
         let line2 = (*bar_a + *beta * eval_challenge + gamma) * (*bar_b + *beta * self.copy_constraint.get_k1() * eval_challenge + gamma)
