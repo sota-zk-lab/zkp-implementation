@@ -25,7 +25,7 @@ impl SlidePoly {
             tmp += 1;
         }
 
-        let mut slices = [(); 3].map(|_| Polynomial::zero());
+        let mut slices = [0; 3].map(|_| Polynomial::zero());
         coeffs
             .chunks(tmp)
             .map(|coeffs| Polynomial::from_coefficients_slice(coeffs))

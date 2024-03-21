@@ -227,7 +227,6 @@ impl CompiledCircuit {
             acc_e.push(pre_acc_e);
         }
 
-
         let mut acc_e_shifted = acc_e.clone();
         acc_e_shifted.rotate_left(1);
 
@@ -240,44 +239,32 @@ impl CompiledCircuit {
         let k1 = self.copy_constraint.k1();
         let k2 = self.copy_constraint.k2();
 
-        let line1 = self.gate_constraint.q_mx().mul(ax).mul(bx)
-            + self.gate_constraint.q_lx().mul(ax)
-            + self.gate_constraint.q_rx().mul(bx)
-            + self.gate_constraint.q_ox().mul(cx)
+        let line1 = &(ax * bx) * self.gate_constraint.q_mx()
+            + ax * self.gate_constraint.q_lx()
+            + bx * self.gate_constraint.q_rx()
+            + cx * self.gate_constraint.q_ox()
             + self.gate_constraint.pi_x().clone()
             + self.gate_constraint.q_cx().clone();
 
         // check line 1
-        self.vanishes(&line1, "Wrong: line1 round 3 of generating proof");
-        let (line1, _) = line1.divide_by_vanishing_poly(self.domain).unwrap();
+        let quotient1 = self.divide_by_vanishing_poly(&line1).expect("no remainder 1");
 
         let line2 = (ax.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta]))
             .mul(&(bx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k1])))
             .mul(&(cx.clone() + DensePolynomial::from_coefficients_vec(vec![*gamma, *beta * k2])))
-            .mul(*alpha)
-            .mul(z_x);
+            .mul(z_x)
+            .mul(alpha.clone());
 
         let line3 = (ax.clone() + self.copy_constraint.get_ssigma_1().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma]))
             .mul(&(bx.clone() + self.copy_constraint.get_ssigma_2().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
             .mul(&(cx.clone() + self.copy_constraint.get_ssigma_3().mul(*beta) + DensePolynomial::from_coefficients_vec(vec![*gamma])))
-            .mul(*alpha)
-            .mul(z_wx);
+            .mul(z_wx)
+            .mul(alpha.clone());
 
-        // check the evaluation of line 2 and 3
-        let tmp = self.domain.element(2);
-        let line3_eval = line3.evaluate(&tmp);
-        let line2_eval = line2.evaluate(&tmp);
-        assert_eq!(
-            line2_eval - line3_eval,
-            Fr::zero(),
-            "Wrong: line2 or line3 round 3 of generating proof"
-        );
-
-        let line23 = line2 + (-line3);
+        let line23 = &line2 - &line3;
 
         // check line 23
-        self.vanishes(&line23, "Wrong: line23 round 3 of generating proof");
-        let (line23, _) = line23.divide_by_vanishing_poly(self.domain).unwrap();
+        let quotient23 = self.divide_by_vanishing_poly(&line23).expect("No remainder here");
 
         let line4 = {
             let l1 = self.l1_poly();
@@ -287,21 +274,18 @@ impl CompiledCircuit {
         };
 
         // check line 4
-        self.vanishes(&line4, "Error: Line4 Round 3");
-        let (line4, _) = line4.divide_by_vanishing_poly(self.domain).unwrap();
+        let quotient4 = self.divide_by_vanishing_poly(&line4).expect("no remainder here");
 
-        let quotient_polynomial = line1 + line23 + line4;
-        quotient_polynomial
+        quotient1 + quotient23 + quotient4
     }
 
 
-    fn vanishes(&self, poly: &Polynomial, msg: &str) {
-        let (_, rest) = poly.divide_by_vanishing_poly(self.domain).unwrap();
-
-        #[cfg(test)]
-        println!("Rest: {:?}", rest);
-
-        assert!(rest.is_zero(), "{}", msg);
+    fn divide_by_vanishing_poly(&self, poly: &Polynomial) -> Result<Polynomial, &str> {
+        let (result, rest) = poly.divide_by_vanishing_poly(self.domain).unwrap();
+        if !rest.is_zero() {
+            return Err("has remainder");
+        }
+        Ok(result)
     }
 
     pub(crate) fn l1_poly(&self) -> Polynomial {
